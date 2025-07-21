@@ -1,17 +1,24 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateBorrowDto } from './dto/create-borrow.dto';
 import { ReturnBorrowDto } from './dto/return-borrow.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class BorrowService {
+  private readonly logger = new Logger(BorrowService.name);
   constructor(private prisma: PrismaService) {}
 
   async borrowBook(dto: CreateBorrowDto) {
-    const book = await this.prisma.book.findUnique({ where: { id: dto.bookId } });
-    const user = await this.prisma.user.findUnique({where: {id: dto.userId}})
-    console.log(user, "\n", book);
-    
+    const book = await this.prisma.book.findUnique({
+      where: { id: dto.bookId },
+    });
+    const user = await this.prisma.user.findUnique({
+      where: { id: dto.userId },
+    });
+    console.log(user, '\n', book);
+
     if (!book || !book.isAvailable) {
       throw new NotFoundException('Kitob mavjud emas yoki band.');
     }
@@ -28,6 +35,11 @@ export class BorrowService {
       data: { isAvailable: false },
     });
 
+    this.logger.log(
+      `Kitob (ID: ${dto.bookId}) foydalanuvchiga (ID: ${dto.userId}) ijaraga berildi.`,
+    );
+    
+
     return borrow;
   }
 
@@ -38,7 +50,9 @@ export class BorrowService {
     });
 
     if (!borrow || borrow.returnDate) {
-      throw new NotFoundException('Ijara topilmadi yoki allaqachon qaytarilgan.');
+      throw new NotFoundException(
+        'Ijara topilmadi yoki allaqachon qaytarilgan.',
+      );
     }
 
     await this.prisma.borrow.update({
@@ -50,7 +64,9 @@ export class BorrowService {
       where: { id: borrow.bookId },
       data: { isAvailable: true },
     });
-
+    this.logger.log(
+      `Kitob (ID: ${borrow.bookId}) foydalanuvchi (ID: ${borrow.userId}) tomonidan qaytarildi.`,
+    );
     return { message: 'Kitob qaytarildi' };
   }
 
