@@ -9,6 +9,9 @@ export class BorrowService {
 
   async borrowBook(dto: CreateBorrowDto) {
     const book = await this.prisma.book.findUnique({ where: { id: dto.bookId } });
+    const user = await this.prisma.user.findUnique({where: {id: dto.userId}})
+    console.log(user, "\n", book);
+    
     if (!book || !book.isAvailable) {
       throw new NotFoundException('Kitob mavjud emas yoki band.');
     }
